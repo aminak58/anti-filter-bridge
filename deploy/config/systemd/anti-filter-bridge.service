@@ -1,0 +1,26 @@
+[Unit]
+Description=Anti-Filter Bridge Service
+After=network.target
+
+[Service]
+User=afb_user
+Group=afb_group
+WorkingDirectory=/opt/anti-filter-bridge
+EnvironmentFile=/etc/anti-filter-bridge/.env
+ExecStart=/opt/anti-filter-bridge/venv/bin/python -m anti_filter_bridge.server \
+    --host 0.0.0.0 \
+    --port 8443 \
+    --certfile /etc/ssl/certs/anti-filter-bridge.crt \
+    --keyfile /etc/ssl/private/anti-filter-bridge.key \
+    --log-level INFO
+Restart=always
+RestartSec=5
+
+# Security
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
