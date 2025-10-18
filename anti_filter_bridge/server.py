@@ -4,6 +4,7 @@ Handles incoming WebSocket connections and routes traffic between clients and ta
 """
 import asyncio
 import logging
+import os
 import ssl
 import signal
 import sys
@@ -61,6 +62,20 @@ class TunnelServer:
             'websocket_endpoint': f'wss://{self.host}:{self.port}'
         })
 
+    async def _process_request(self, path, request_headers):
+        """Process HTTP requests for health checks"""
+        if path == '/status':
+            return web.Response(
+                text='{"status":"healthy","message":"Anti-Filter Bridge Server is running","version":"0.1.0","connections":0}',
+                content_type='application/json'
+            )
+        elif path == '/':
+            return web.Response(
+                text='{"message":"Anti-Filter Bridge Server","status":"running","version":"0.1.0"}',
+                content_type='application/json'
+            )
+        return None  # Let WebSocket handle it
+
     async def handle_client(self, websocket: WebSocketServerProtocol, path: str):
         """Handle a new WebSocket client connection with improved reliability."""
         # Delegate connection handling to the connection manager
@@ -116,19 +131,13 @@ class TunnelServer:
             # Start the connection manager
             await self.conn_manager.start_monitoring()
             
-            # Start HTTP server for health checks
-            self.http_runner = web.AppRunner(self.http_app)
-            await self.http_runner.setup()
-            http_site = web.TCPSite(self.http_runner, self.host, self.port)
-            await http_site.start()
-            logger.info("HTTP server started on http://%s:%s", self.host, self.port)
-            
-            # Start the WebSocket server
+            # Start the WebSocket server with HTTP fallback
             async with websockets.serve(
                 self.handle_client,
                 self.host,
                 self.port,
                 ssl=self.ssl_context,
+                process_request=self._process_request,
                 **server_config
             ) as server:
                 self.server = server
@@ -152,11 +161,6 @@ class TunnelServer:
         self.running = False
 
         try:
-            # Stop HTTP server
-            if self.http_runner:
-                logger.info("Stopping HTTP server...")
-                await self.http_runner.cleanup()
-
             # Notify all clients of impending shutdown
             if self.clients:
                 logger.info("Notifying %d clients...", len(self.clients))
