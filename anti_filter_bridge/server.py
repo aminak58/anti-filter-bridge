@@ -37,12 +37,15 @@ class TunnelServer:
         self._setup_http_app()
 
     def _setup_http_app(self):
-        """Setup HTTP app for health checks"""
+        """Setup HTTP app for health checks and WebSocket"""
         self.http_app = web.Application()
         
         # Health check endpoint
         self.http_app.router.add_get('/status', self._health_check)
         self.http_app.router.add_get('/', self._root_handler)
+        
+        # WebSocket endpoint
+        self.http_app.router.add_get('/ws', self._websocket_handler)
         
     async def _health_check(self, request):
         """Health check endpoint"""
@@ -59,8 +62,44 @@ class TunnelServer:
             'message': 'Anti-Filter Bridge Server',
             'status': 'running',
             'version': '0.1.0',
-            'websocket_endpoint': f'wss://{self.host}:{self.port}'
+            'websocket_endpoint': f'wss://{self.host}:{self.port}/ws'
         })
+    
+    async def _websocket_handler(self, request):
+        """WebSocket handler for aiohttp"""
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+        
+        # Convert to websockets format for compatibility
+        class WebSocketAdapter:
+            def __init__(self, ws):
+                self.ws = ws
+                self.remote_address = (request.remote, 0)
+                self.open = True
+                self.closed = False
+            
+            async def send(self, data):
+                await self.ws.send_str(data)
+            
+            async def recv(self):
+                msg = await self.ws.receive()
+                if msg.type == web.WSMsgType.TEXT:
+                    return msg.data
+                elif msg.type == web.WSMsgType.ERROR:
+                    raise websockets.exceptions.ConnectionClosed(1006, "WebSocket error")
+                else:
+                    raise websockets.exceptions.ConnectionClosed(1000, "WebSocket closed")
+            
+            async def close(self):
+                await self.ws.close()
+                self.open = False
+                self.closed = True
+        
+        # Use the adapter
+        adapter = WebSocketAdapter(ws)
+        await self.handle_client(adapter, '/ws')
+        
+        return ws
 
     async def _process_request(self, path, request_headers):
         """Process HTTP requests for health checks"""
@@ -135,26 +174,17 @@ class TunnelServer:
             # Start the connection manager
             await self.conn_manager.start_monitoring()
             
-            # Start HTTP server for health checks
-            http_port = self.port + 1  # Use next port for HTTP
+            # Start HTTP server with WebSocket support
             self.http_runner = web.AppRunner(self.http_app)
             await self.http_runner.setup()
-            http_site = web.TCPSite(self.http_runner, self.host, http_port)
+            http_site = web.TCPSite(self.http_runner, self.host, self.port, ssl_context=self.ssl_context)
             await http_site.start()
-            logger.info("HTTP server started on http://%s:%s", self.host, http_port)
+            logger.info("HTTP/WebSocket server started on https://%s:%s", self.host, self.port)
+            logger.info("Health check: https://%s:%s/status", self.host, self.port)
+            logger.info("WebSocket: wss://%s:%s/ws", self.host, self.port)
             
-            # Start the WebSocket server
-            async with websockets.serve(
-                self.handle_client,
-                self.host,
-                self.port,
-                ssl=self.ssl_context,
-                **server_config
-            ) as server:
-                self.server = server
-                logger.info("WebSocket server started on wss://%s:%s", self.host, self.port)
-                logger.info("Connection settings: %s", server_config)
-                await asyncio.Future()  # Run forever
+            # Keep running
+            await asyncio.Future()  # Run forever
                 
         except asyncio.CancelledError:
             logger.info("Server shutdown requested...")
