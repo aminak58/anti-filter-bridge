@@ -77,6 +77,39 @@ class TunnelServer:
                 self.remote_address = (request.remote, 0)
                 self.open = True
                 self.closed = False
+                self._message_queue = asyncio.Queue()
+                self._receive_task = None
+                
+                # Start message receiving task
+                self._receive_task = asyncio.create_task(self._receive_loop())
+            
+            async def _receive_loop(self):
+                """Background task to receive messages"""
+                try:
+                    while self.open and not self.closed:
+                        try:
+                            msg = await self.ws.receive()
+                            if msg.type == web.WSMsgType.TEXT:
+                                await self._message_queue.put(msg.data)
+                            elif msg.type == web.WSMsgType.ERROR:
+                                self.closed = True
+                                await self._message_queue.put(websockets.exceptions.ConnectionClosed(1006, "WebSocket error"))
+                                break
+                            elif msg.type == web.WSMsgType.CLOSE:
+                                self.closed = True
+                                await self._message_queue.put(websockets.exceptions.ConnectionClosed(1000, "WebSocket closed"))
+                                break
+                            else:
+                                self.closed = True
+                                await self._message_queue.put(websockets.exceptions.ConnectionClosed(1000, "WebSocket closed"))
+                                break
+                        except Exception as e:
+                            self.closed = True
+                            await self._message_queue.put(websockets.exceptions.ConnectionClosed(1006, f"WebSocket error: {e}"))
+                            break
+                except Exception as e:
+                    self.closed = True
+                    await self._message_queue.put(websockets.exceptions.ConnectionClosed(1006, f"WebSocket error: {e}"))
             
             async def send(self, data):
                 if self.open and not self.closed:
@@ -87,27 +120,30 @@ class TunnelServer:
                     raise websockets.exceptions.ConnectionClosed(1000, "WebSocket closed")
                 
                 try:
-                    msg = await self.ws.receive()
-                    if msg.type == web.WSMsgType.TEXT:
-                        return msg.data
-                    elif msg.type == web.WSMsgType.ERROR:
-                        self.closed = True
-                        raise websockets.exceptions.ConnectionClosed(1006, "WebSocket error")
-                    elif msg.type == web.WSMsgType.CLOSE:
-                        self.closed = True
-                        raise websockets.exceptions.ConnectionClosed(1000, "WebSocket closed")
-                    else:
-                        self.closed = True
-                        raise websockets.exceptions.ConnectionClosed(1000, "WebSocket closed")
+                    message = await self._message_queue.get()
+                    if isinstance(message, Exception):
+                        raise message
+                    return message
                 except Exception as e:
                     self.closed = True
-                    raise websockets.exceptions.ConnectionClosed(1006, f"WebSocket error: {e}")
+                    raise e
             
             async def close(self):
                 if not self.closed:
+                    self.closed = True
+                    if self._receive_task:
+                        self._receive_task.cancel()
                     await self.ws.close()
                     self.open = False
-                    self.closed = True
+            
+            def __aiter__(self):
+                return self
+            
+            async def __anext__(self):
+                try:
+                    return await self.recv()
+                except websockets.exceptions.ConnectionClosed:
+                    raise StopAsyncIteration
         
         # Use the adapter
         adapter = WebSocketAdapter(ws)
