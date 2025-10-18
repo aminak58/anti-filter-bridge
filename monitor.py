@@ -14,7 +14,7 @@ from typing import Dict, List, Optional
 class DeploymentMonitor:
     def __init__(self):
         self.deployments = {
-            'railway': 'https://adventurous-youth-production.up.railway.app',
+            'railway': 'https://awake-integrity-production.up.railway.app',
             'heroku': 'https://anti-filter-bridge.herokuapp.com',
             'render': 'https://anti-filter-bridge.onrender.com'
         }

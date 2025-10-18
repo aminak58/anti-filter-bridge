@@ -79,25 +79,52 @@ class TunnelServer:
                 self.closed = False
             
             async def send(self, data):
-                await self.ws.send_str(data)
+                if self.open and not self.closed:
+                    await self.ws.send_str(data)
             
             async def recv(self):
-                msg = await self.ws.receive()
-                if msg.type == web.WSMsgType.TEXT:
-                    return msg.data
-                elif msg.type == web.WSMsgType.ERROR:
-                    raise websockets.exceptions.ConnectionClosed(1006, "WebSocket error")
-                else:
+                if self.closed:
                     raise websockets.exceptions.ConnectionClosed(1000, "WebSocket closed")
+                
+                try:
+                    msg = await self.ws.receive()
+                    if msg.type == web.WSMsgType.TEXT:
+                        return msg.data
+                    elif msg.type == web.WSMsgType.ERROR:
+                        self.closed = True
+                        raise websockets.exceptions.ConnectionClosed(1006, "WebSocket error")
+                    elif msg.type == web.WSMsgType.CLOSE:
+                        self.closed = True
+                        raise websockets.exceptions.ConnectionClosed(1000, "WebSocket closed")
+                    else:
+                        self.closed = True
+                        raise websockets.exceptions.ConnectionClosed(1000, "WebSocket closed")
+                except Exception as e:
+                    self.closed = True
+                    raise websockets.exceptions.ConnectionClosed(1006, f"WebSocket error: {e}")
             
             async def close(self):
-                await self.ws.close()
-                self.open = False
-                self.closed = True
+                if not self.closed:
+                    await self.ws.close()
+                    self.open = False
+                    self.closed = True
         
         # Use the adapter
         adapter = WebSocketAdapter(ws)
-        await self.handle_client(adapter, '/ws')
+        
+        # Add to clients set
+        self.clients.add(adapter)
+        
+        try:
+            # Handle the client connection
+            await self.handle_client(adapter, '/ws')
+        except Exception as e:
+            logger.error(f"Error in WebSocket handler: {e}", exc_info=True)
+        finally:
+            # Remove from clients set
+            self.clients.discard(adapter)
+            if adapter in self.conn_manager.connections:
+                await self.conn_manager._cleanup_connection(adapter)
         
         return ws
 
@@ -115,32 +142,54 @@ class TunnelServer:
             )
         return None  # Let WebSocket handle it
 
-    async def handle_client(self, websocket: WebSocketServerProtocol, path: str):
+    async def handle_client(self, websocket, path: str):
         """Handle a new WebSocket client connection with improved reliability."""
         # Delegate connection handling to the connection manager
         await self.conn_manager.handle_connection(websocket, path)
 
         # Keep track of the client for server management
         client_addr = f"{websocket.remote_address[0]}:{websocket.remote_address[1]}"
-        self.clients.add(websocket)
+        logger.info("New client connected: %s", client_addr)
 
         try:
-            # Keep the connection alive until it's closed
-            while True:
-                await asyncio.sleep(3600)  # Sleep for a long time
-        except (websockets.exceptions.ConnectionClosed, asyncio.CancelledError) as e:
-            logger.info("Client connection closed: %s: %s", client_addr, str(e))
+            # Keep the connection alive and handle messages
+            while websocket.open and not websocket.closed:
+                try:
+                    # Wait for a message with timeout
+                    message = await asyncio.wait_for(websocket.recv(), timeout=30.0)
+                    logger.debug("Received message from %s: %s", client_addr, message)
+                    
+                    # Process the message through connection manager
+                    # This is where the actual tunnel logic would go
+                    await asyncio.sleep(0.1)  # Small delay to prevent busy waiting
+                    
+                except asyncio.TimeoutError:
+                    # Send ping to keep connection alive
+                    try:
+                        await websocket.send('{"type": "ping"}')
+                    except:
+                        break
+                except (websockets.exceptions.ConnectionClosed, asyncio.CancelledError) as e:
+                    logger.info("Client connection closed: %s: %s", client_addr, str(e))
+                    break
+                except Exception as e:
+                    logger.error(
+                        "Error in client connection %s: %s",
+                        client_addr,
+                        str(e),
+                        exc_info=True
+                    )
+                    break
+                    
         except Exception as e:
             logger.error(
-                "Error in client connection %s: %s",
+                "Fatal error in client connection %s: %s",
                 client_addr,
                 str(e),
                 exc_info=True
             )
         finally:
-            self.clients.discard(websocket)
-            if websocket in self.conn_manager.connections:
-                await self.conn_manager._cleanup_connection(websocket)
+            logger.info("Client disconnected: %s", client_addr)
 
     async def start(self):
         """Start the WebSocket server with connection management."""
