@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: anti-filter-bridge
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m anti_filter_bridge.server --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8080
+      - key: LOG_LEVEL
+        value: INFO
+    healthCheckPath: /status
