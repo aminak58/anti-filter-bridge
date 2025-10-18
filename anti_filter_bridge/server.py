@@ -231,7 +231,7 @@ async def main():
     
     parser = argparse.ArgumentParser(description='Anti-Filter Bridge Server')
     parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
-    parser.add_argument('--port', type=int, default=8443, help='Port to listen on')
+    parser.add_argument('--port', type=int, default=int(os.environ.get('PORT', 8443)), help='Port to listen on')
     parser.add_argument('--certfile', help='Path to SSL certificate file')
     parser.add_argument('--keyfile', help='Path to SSL private key file')
     parser.add_argument('--log-level', default='INFO', 
