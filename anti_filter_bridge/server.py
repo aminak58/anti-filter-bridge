@@ -10,6 +10,7 @@ import sys
 from typing import Optional, Set, Any
 import websockets
 from websockets.server import WebSocketServerProtocol
+from aiohttp import web
 
 try:
     from .connection_manager import connection_manager as conn_manager
@@ -30,6 +31,35 @@ class TunnelServer:
         self.running = False
         self.server: Optional[asyncio.Server] = None
         self.conn_manager = conn_manager
+        self.http_app = None
+        self.http_runner = None
+        self._setup_http_app()
+
+    def _setup_http_app(self):
+        """Setup HTTP app for health checks"""
+        self.http_app = web.Application()
+        
+        # Health check endpoint
+        self.http_app.router.add_get('/status', self._health_check)
+        self.http_app.router.add_get('/', self._root_handler)
+        
+    async def _health_check(self, request):
+        """Health check endpoint"""
+        return web.json_response({
+            'status': 'healthy',
+            'message': 'Anti-Filter Bridge Server is running',
+            'version': '0.1.0',
+            'connections': len(self.clients)
+        })
+    
+    async def _root_handler(self, request):
+        """Root endpoint"""
+        return web.json_response({
+            'message': 'Anti-Filter Bridge Server',
+            'status': 'running',
+            'version': '0.1.0',
+            'websocket_endpoint': f'wss://{self.host}:{self.port}'
+        })
 
     async def handle_client(self, websocket: WebSocketServerProtocol, path: str):
         """Handle a new WebSocket client connection with improved reliability."""
@@ -86,6 +116,13 @@ class TunnelServer:
             # Start the connection manager
             await self.conn_manager.start_monitoring()
             
+            # Start HTTP server for health checks
+            self.http_runner = web.AppRunner(self.http_app)
+            await self.http_runner.setup()
+            http_site = web.TCPSite(self.http_runner, self.host, self.port)
+            await http_site.start()
+            logger.info("HTTP server started on http://%s:%s", self.host, self.port)
+            
             # Start the WebSocket server
             async with websockets.serve(
                 self.handle_client,
@@ -95,7 +132,7 @@ class TunnelServer:
                 **server_config
             ) as server:
                 self.server = server
-                logger.info("Server started on wss://%s:%s", self.host, self.port)
+                logger.info("WebSocket server started on wss://%s:%s", self.host, self.port)
                 logger.info("Connection settings: %s", server_config)
                 await asyncio.Future()  # Run forever
                 
@@ -115,6 +152,11 @@ class TunnelServer:
         self.running = False
 
         try:
+            # Stop HTTP server
+            if self.http_runner:
+                logger.info("Stopping HTTP server...")
+                await self.http_runner.cleanup()
+
             # Notify all clients of impending shutdown
             if self.clients:
                 logger.info("Notifying %d clients...", len(self.clients))
