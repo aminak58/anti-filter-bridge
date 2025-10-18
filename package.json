@@ -1,0 +1,21 @@
+{
+  "name": "anti-filter-bridge",
+  "version": "1.0.0",
+  "description": "A secure WebSocket tunnel to bypass internet restrictions",
+  "main": "main.py",
+  "scripts": {
+    "start": "python -m anti_filter_bridge.server --host 0.0.0.0 --port $PORT"
+  },
+  "engines": {
+    "python": "3.11"
+  },
+  "keywords": [
+    "websocket",
+    "proxy",
+    "tunnel",
+    "bypass",
+    "python"
+  ],
+  "author": "Anti-Filter Bridge Team",
+  "license": "MIT"
+}

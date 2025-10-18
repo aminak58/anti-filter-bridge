@@ -5,13 +5,13 @@
     "status": "unhealthy",
     "websocket": "\u274c WebSocket Error: ",
     "http": "\u2705 HTTP OK",
-    "response_time_ms": 11638.41,
-    "timestamp": "2025-10-19T01:19:19.545223",
+    "response_time_ms": 11950.23,
+    "timestamp": "2025-10-19T01:47:26.326199",
     "data": {
       "status": "healthy",
       "message": "Anti-Filter Bridge Server is running",
       "version": "0.1.0",
-      "connections": 0
+      "connections": 1
     }
   },
   "heroku": {
@@ -20,8 +20,8 @@
     "status": "unhealthy",
     "websocket": "\u274c WebSocket Error: ",
     "http": "\u274c HTTP 404",
-    "response_time_ms": 11519.55,
-    "timestamp": "2025-10-19T01:19:19.429486",
+    "response_time_ms": 12163.03,
+    "timestamp": "2025-10-19T01:47:26.542092",
     "data": {}
   },
   "render": {
@@ -30,8 +30,8 @@
     "status": "unhealthy",
     "websocket": "\u274c WebSocket Error: Cannot connect to host anti-filter-bridge.onrender",
     "http": "\u274c HTTP 404",
-    "response_time_ms": 1789.33,
-    "timestamp": "2025-10-19T01:19:09.701552",
+    "response_time_ms": 1572.11,
+    "timestamp": "2025-10-19T01:47:15.953255",
     "data": {}
   }
 }
