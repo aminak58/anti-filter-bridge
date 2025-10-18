@@ -1,0 +1,32 @@
+{
+  "railway": {
+    "name": "railway",
+    "url": "https://adventurous-youth-production.up.railway.app",
+    "status": "unhealthy",
+    "websocket": "\u274c WebSocket Error: ",
+    "http": "\u274c HTTP Error: 200, message='Attempt to decode JSON with unexpect",
+    "response_time_ms": 11543.06,
+    "timestamp": "2025-10-19T01:11:41.669110",
+    "data": {}
+  },
+  "heroku": {
+    "name": "heroku",
+    "url": "https://anti-filter-bridge.herokuapp.com",
+    "status": "unhealthy",
+    "websocket": "\u274c WebSocket Error: ",
+    "http": "\u274c HTTP 404",
+    "response_time_ms": 12025.43,
+    "timestamp": "2025-10-19T01:11:42.155279",
+    "data": {}
+  },
+  "render": {
+    "name": "render",
+    "url": "https://anti-filter-bridge.onrender.com",
+    "status": "unhealthy",
+    "websocket": "\u274c WebSocket Error: Cannot connect to host anti-filter-bridge.onrender",
+    "http": "\u274c HTTP 404",
+    "response_time_ms": 1525.01,
+    "timestamp": "2025-10-19T01:11:31.657155",
+    "data": {}
+  }
+}

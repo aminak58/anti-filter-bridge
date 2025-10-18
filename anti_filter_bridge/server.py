@@ -135,13 +135,20 @@ class TunnelServer:
             # Start the connection manager
             await self.conn_manager.start_monitoring()
             
-            # Start the WebSocket server with HTTP fallback
+            # Start HTTP server for health checks
+            http_port = self.port + 1  # Use next port for HTTP
+            self.http_runner = web.AppRunner(self.http_app)
+            await self.http_runner.setup()
+            http_site = web.TCPSite(self.http_runner, self.host, http_port)
+            await http_site.start()
+            logger.info("HTTP server started on http://%s:%s", self.host, http_port)
+            
+            # Start the WebSocket server
             async with websockets.serve(
                 self.handle_client,
                 self.host,
                 self.port,
                 ssl=self.ssl_context,
-                process_request=self._process_request,
                 **server_config
             ) as server:
                 self.server = server
@@ -165,6 +172,11 @@ class TunnelServer:
         self.running = False
 
         try:
+            # Stop HTTP server
+            if self.http_runner:
+                logger.info("Stopping HTTP server...")
+                await self.http_runner.cleanup()
+
             # Notify all clients of impending shutdown
             if self.clients:
                 logger.info("Notifying %d clients...", len(self.clients))
