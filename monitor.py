@@ -15,8 +15,8 @@ class DeploymentMonitor:
     def __init__(self):
         self.deployments = {
             'railway': 'https://awake-integrity-production.up.railway.app',
-            'heroku': 'https://anti-filter-bridge.herokuapp.com',
-            'render': 'https://anti-filter-bridge.onrender.com'
+            'replit': 'https://anti-filter-bridge.aminak58.repl.co',
+            'glitch': 'https://anti-filter-bridge.glitch.me'
         }
         self.results = {}
     
@@ -117,6 +117,11 @@ class DeploymentMonitor:
         with open('monitoring_results.json', 'w') as f:
             json.dump(self.results, f, indent=2)
         print("📁 Results saved to monitoring_results.json")
+    
+    async def run(self):
+        """Run a single monitoring check."""
+        await self.monitor_all()
+        self.generate_report()
     
     async def continuous_monitor(self, interval: int = 60):
         """Continuously monitor deployments."""

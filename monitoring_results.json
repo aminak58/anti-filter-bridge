@@ -5,8 +5,8 @@
     "status": "unhealthy",
     "websocket": "\u274c WebSocket Error: ",
     "http": "\u2705 HTTP OK",
-    "response_time_ms": 11950.23,
-    "timestamp": "2025-10-19T01:47:26.326199",
+    "response_time_ms": 11267.07,
+    "timestamp": "2025-10-19T02:19:54.038122",
     "data": {
       "status": "healthy",
       "message": "Anti-Filter Bridge Server is running",
@@ -14,24 +14,24 @@
       "connections": 1
     }
   },
-  "heroku": {
-    "name": "heroku",
-    "url": "https://anti-filter-bridge.herokuapp.com",
+  "replit": {
+    "name": "replit",
+    "url": "https://anti-filter-bridge.aminak58.repl.co",
     "status": "unhealthy",
-    "websocket": "\u274c WebSocket Error: ",
-    "http": "\u274c HTTP 404",
-    "response_time_ms": 12163.03,
-    "timestamp": "2025-10-19T01:47:26.542092",
+    "websocket": "\u274c WebSocket Error: Cannot connect to host anti-filter-bridge.aminak58",
+    "http": "\u274c HTTP Error: Cannot connect to host anti-filter-bridge.aminak58",
+    "response_time_ms": 149.49,
+    "timestamp": "2025-10-19T02:19:42.923518",
     "data": {}
   },
-  "render": {
-    "name": "render",
-    "url": "https://anti-filter-bridge.onrender.com",
+  "glitch": {
+    "name": "glitch",
+    "url": "https://anti-filter-bridge.glitch.me",
     "status": "unhealthy",
-    "websocket": "\u274c WebSocket Error: Cannot connect to host anti-filter-bridge.onrender",
-    "http": "\u274c HTTP 404",
-    "response_time_ms": 1572.11,
-    "timestamp": "2025-10-19T01:47:15.953255",
+    "websocket": "\u274c WebSocket Error: ",
+    "http": "\u274c HTTP Error: Cannot connect to host anti-filter-bridge.glitch.m",
+    "response_time_ms": 12390.58,
+    "timestamp": "2025-10-19T02:19:55.166610",
     "data": {}
   }
 }
