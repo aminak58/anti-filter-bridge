@@ -1,0 +1,41 @@
+{
+  "name": "Anti-Filter Bridge",
+  "description": "A secure tunnel to bypass internet restrictions using WebSocket and advanced encryption",
+  "repository": "https://github.com/aminak58/anti-filter-bridge",
+  "logo": "https://raw.githubusercontent.com/aminak58/anti-filter-bridge/master/docs/logo.png",
+  "keywords": [
+    "proxy",
+    "tunnel",
+    "websocket",
+    "bypass",
+    "encryption",
+    "socks5"
+  ],
+  "stack": "heroku-22",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "HOST": {
+      "description": "Host to bind the server to",
+      "value": "0.0.0.0"
+    },
+    "PORT": {
+      "description": "Port to bind the server to",
+      "value": "8080"
+    },
+    "LOG_LEVEL": {
+      "description": "Logging level",
+      "value": "INFO"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "addons": []
+}

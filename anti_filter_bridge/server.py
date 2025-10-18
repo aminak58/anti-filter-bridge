@@ -108,13 +108,17 @@ class TunnelServer:
         logger.info("Starting WebSocket server on %s:%s", self.host, self.port)
         self.running = True
 
-        # Set up signal handlers for graceful shutdown
-        loop = asyncio.get_running_loop()
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(
-                sig,
-                lambda: asyncio.create_task(self.stop())
-            )
+        # Set up signal handlers for graceful shutdown (Windows compatible)
+        try:
+            loop = asyncio.get_running_loop()
+            for sig in (signal.SIGINT, signal.SIGTERM):
+                loop.add_signal_handler(
+                    sig,
+                    lambda: asyncio.create_task(self.stop())
+                )
+        except NotImplementedError:
+            # Signal handlers not supported on this platform (Windows)
+            logger.info("Signal handlers not supported on this platform")
 
         # Configure server with connection manager settings
         server_config = {

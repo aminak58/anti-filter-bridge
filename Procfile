@@ -1,1 +1,2 @@
 web: python -m anti_filter_bridge.server --host 0.0.0.0 --port $PORT
+worker: python -m anti_filter_bridge.server --host 0.0.0.0 --port $PORT
